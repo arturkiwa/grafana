@@ -6,7 +6,7 @@ services:
     hostname: graph
     restart: always
     environment:
-      - 'GF_SECURITY_ADMIN_PASSWORD=Jcnntctwmzb1972'
+      - 'GF_SECURITY_ADMIN_PASSWORD=INITIAL_ADMIN_PASSWORD_HERE'
       - 'GF_INSTALL_PLUGINS=camptocamp-prometheus-alertmanager-datasource'
     #ports:
     #  - "3000:3000"
@@ -17,7 +17,7 @@ services:
       - grafana_data:/opt/bitnami/grafana/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.graph.rule=Host(`graph.artbit.com.pl`)"
+      - "traefik.http.routers.graph.rule=Host(`YOUR_HOSTNAME_HERE`)"
       - "traefik.http.routers.graph.entrypoints=websecure"
       - "traefik.http.routers.graph.tls=true"
       - "traefik.http.routers.graph.tls.certresolver=leresolver"
@@ -38,7 +38,7 @@ services:
       - graph_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.artbit.com.pl`)"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.HOSTNAME_HERE`)"
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls=true"
       - "traefik.http.routers.prometheus.tls.certresolver=leresolver"
@@ -57,7 +57,7 @@ services:
       - graph_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.alert.rule=Host(`alert.artbit.com.pl`)"
+      - "traefik.http.routers.alert.rule=Host(`alert.HOSTNAME_HERE`)"
       - "traefik.http.routers.alert.entrypoints=websecure"
       - "traefik.http.routers.alert.tls=true"
       - "traefik.http.routers.alert.tls.certresolver=leresolver"
