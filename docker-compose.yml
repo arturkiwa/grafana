@@ -1,0 +1,116 @@
+version: "3.7"
+
+services:
+  grafana:
+    image: docker.io/bitnami/grafana:latest
+    hostname: graph
+    restart: always
+    environment:
+      - 'GF_SECURITY_ADMIN_PASSWORD=Jcnntctwmzb1972'
+      - 'GF_INSTALL_PLUGINS=camptocamp-prometheus-alertmanager-datasource'
+    #ports:
+    #  - "3000:3000"
+    networks:
+      - traefik-external
+      - graph_network
+    volumes:
+      - grafana_data:/opt/bitnami/grafana/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.graph.rule=Host(`graph.artbit.com.pl`)"
+      - "traefik.http.routers.graph.entrypoints=websecure"
+      - "traefik.http.routers.graph.tls=true"
+      - "traefik.http.routers.graph.tls.certresolver=leresolver"
+      - "traefik.docker.network=traefik-external"
+      - "traefik.port=3000"
+
+  prometheus:
+    image: docker.io/bitnami/prometheus:2
+    hostname: prometheus
+    restart: always
+    volumes:
+      - prometheus_data:/opt/bitnami/prometheus/data
+      - prometheus_config:/opt/bitnami/prometheus/conf
+    #ports:
+    #  - '9091:9090'
+    networks:
+      - traefik-external
+      - graph_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.artbit.com.pl`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.tls.certresolver=leresolver"
+      - "traefik.docker.network=traefik-external"
+      - "traefik.port=9090"
+      - "traefik.http.routers.prometheus.middlewares=authtraefik"
+
+  alertmanager:
+    image: docker.io/bitnami/alertmanager:0
+    hostname: alertmanager
+    restart: always
+    #ports:
+    #  - '9093:9093'
+    networks:
+      - traefik-external
+      - graph_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alert.rule=Host(`alert.artbit.com.pl`)"
+      - "traefik.http.routers.alert.entrypoints=websecure"
+      - "traefik.http.routers.alert.tls=true"
+      - "traefik.http.routers.alert.tls.certresolver=leresolver"
+      - "traefik.docker.network=traefik-external"
+      - "traefik.port=9093"
+      - "traefik.http.routers.alert.middlewares=authtraefik"
+    volumes:
+      - alertmanager_config:/opt/bitnami/alertmanager/conf
+      - alertmanager_data:/opt/bitnami/alertmanager/data
+
+  blackbox-exporter:
+    image: docker.io/bitnami/blackbox-exporter:0
+    hostname: blackbox
+    restart: always
+    networks:
+      - graph_network
+    volumes:
+      - blackbox_config:/opt/bitnami/blackbox-exporter
+
+  cadvisor:
+    image: google/cadvisor
+    hostname: cadvisor
+    restart: always
+    networks:
+      - graph_network
+    #ports:
+    #  - 8888:8080
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs
+      - /var/run:/var/run
+      - /sys:/sys
+      - /var/lib/docker:/var/lib/docker
+
+  container-exporter:
+    image: prom/container-exporter
+    restart: always
+    #ports:
+    #  - "9104:9104"
+    command:
+      - --addr=/var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  alertmanager_config:
+  alertmanager_data:
+  blackbox_config:
+  grafana_data:
+  prometheus_data:
+  prometheus_config:
+
+networks:
+  traefik-external:
+    external: true
+  graph_network:
+    driver: bridge
