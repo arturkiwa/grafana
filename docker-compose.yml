@@ -11,7 +11,7 @@ services:
     #ports:
     #  - "3000:3000"
     networks:
-      - traefik-external
+      - traefik-network
       - graph_network
     volumes:
       - grafana_data:/opt/bitnami/grafana/data
@@ -34,7 +34,7 @@ services:
     #ports:
     #  - '9091:9090'
     networks:
-      - traefik-external
+      - traefik-network
       - graph_network
     labels:
       - "traefik.enable=true"
@@ -53,7 +53,7 @@ services:
     #ports:
     #  - '9093:9093'
     networks:
-      - traefik-external
+      - traefik-network
       - graph_network
     labels:
       - "traefik.enable=true"
@@ -110,7 +110,9 @@ volumes:
   prometheus_config:
 
 networks:
-  traefik-external:
+  traefik-network:
+    name: ${TRAEFIK_NETWORK_NAME}
     external: true
+    driver: bridge
   graph_network:
     driver: bridge
