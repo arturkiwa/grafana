@@ -6,7 +6,7 @@ services:
     hostname: graph
     restart: always
     environment:
-      - 'GF_SECURITY_ADMIN_PASSWORD=INITIAL_ADMIN_PASSWORD_HERE'
+      - 'GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}'
       - 'GF_INSTALL_PLUGINS=camptocamp-prometheus-alertmanager-datasource'
     #ports:
     #  - "3000:3000"
@@ -17,10 +17,10 @@ services:
       - grafana_data:/opt/bitnami/grafana/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.graph.rule=Host(`YOUR_HOSTNAME_HERE`)"
-      - "traefik.http.routers.graph.entrypoints=websecure"
-      - "traefik.http.routers.graph.tls=true"
-      - "traefik.http.routers.graph.tls.certresolver=leresolver"
+      - "traefik.http.routers.${GRAFANA_PROJECT}.rule=Host(`${GRAFANA_FQDN}`)"
+      - "traefik.http.routers.${GRAFANA_PROJECT}.entrypoints=websecure"
+      - "traefik.http.routers.${GRAFANA_PROJECT}.tls=true"
+      - "traefik.http.routers.${GRAFANA_PROJECT}.tls.certresolver=leresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=3000"
 
@@ -38,10 +38,10 @@ services:
       - graph_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.HOSTNAME_HERE`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.routers.prometheus.tls.certresolver=leresolver"
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.rule=Host(`${PROMETHEUS_FQDN}`)"
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.entrypoints=websecure"
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls=true"
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls.certresolver=leresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9090"
       - "traefik.http.routers.prometheus.middlewares=authtraefik"
@@ -57,10 +57,10 @@ services:
       - graph_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.alert.rule=Host(`alert.HOSTNAME_HERE`)"
-      - "traefik.http.routers.alert.entrypoints=websecure"
-      - "traefik.http.routers.alert.tls=true"
-      - "traefik.http.routers.alert.tls.certresolver=leresolver"
+      - "traefik.http.routers.${ALERT_PROJECT}.rule=Host(`${ALERT_FQDN}`)"
+      - "traefik.http.routers.${ALERT_PROJECT}.entrypoints=websecure"
+      - "traefik.http.routers.${ALERT_PROJECT}.tls=true"
+      - "traefik.http.routers.${ALERT_PROJECT}.tls.certresolver=leresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9093"
       - "traefik.http.routers.alert.middlewares=authtraefik"
