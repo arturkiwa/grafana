@@ -10,6 +10,12 @@ services:
       - 'GF_INSTALL_PLUGINS=camptocamp-prometheus-alertmanager-datasource'
     #ports:
     #  - "3000:3000"
+    logging:
+      driver: "loki"
+      options:
+        loki-url: http://loki:3100/loki/api/v1/push
+        loki-retries: "5"
+        loki-batch-size: "400"
     networks:
       - traefik-network
       - graph_network
@@ -20,7 +26,7 @@ services:
       - "traefik.http.routers.${GRAFANA_PROJECT}.rule=Host(`${GRAFANA_FQDN}`)"
       - "traefik.http.routers.${GRAFANA_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${GRAFANA_PROJECT}.tls=true"
-      - "traefik.http.routers.${GRAFANA_PROJECT}.tls.certresolver=leresolver"
+      - "traefik.http.routers.${GRAFANA_PROJECT}.tls.certresolver=apiresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=3000"
 
@@ -41,10 +47,10 @@ services:
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.rule=Host(`${PROMETHEUS_FQDN}`)"
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls=true"
-      - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls.certresolver=leresolver"
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls.certresolver=apiresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9090"
-      - "traefik.http.routers.prometheus.middlewares=authtraefik"
+      - "traefik.http.routers.prometheus.middlewares=traefik-auth"
 
   alertmanager:
     image: docker.io/bitnami/alertmanager:0
@@ -60,10 +66,10 @@ services:
       - "traefik.http.routers.${ALERT_PROJECT}.rule=Host(`${ALERT_FQDN}`)"
       - "traefik.http.routers.${ALERT_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${ALERT_PROJECT}.tls=true"
-      - "traefik.http.routers.${ALERT_PROJECT}.tls.certresolver=leresolver"
+      - "traefik.http.routers.${ALERT_PROJECT}.tls.certresolver=apiresolver"
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9093"
-      - "traefik.http.routers.alert.middlewares=authtraefik"
+      - "traefik.http.routers.alert.middlewares=traefik-auth"
     volumes:
       - alertmanager_config:/opt/bitnami/alertmanager/conf
       - alertmanager_data:/opt/bitnami/alertmanager/data
@@ -101,6 +107,30 @@ services:
     command:
       - --addr=/var/run/docker.sock:/var/run/docker.sock
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - 127.0.0.1:3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml
+      - loki:/data/loki
+    networks:
+      - graph_network
+
+  mon_promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./promtail:/etc/promtail-config/
+    command: -config.file=/etc/promtail-config/promtail.yml
+    networks:
+      - graph_network
+
+
 volumes:
   alertmanager_config:
   alertmanager_data:
@@ -108,6 +138,7 @@ volumes:
   grafana_data:
   prometheus_data:
   prometheus_config:
+  loki:
 
 networks:
   traefik-network:
