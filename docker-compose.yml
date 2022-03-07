@@ -3,6 +3,7 @@ version: "3.7"
 services:
   grafana:
     image: docker.io/bitnami/grafana:latest
+    container_name: grafana
     hostname: graph
     restart: always
     environment:
@@ -26,6 +27,7 @@ services:
 
   prometheus:
     image: docker.io/bitnami/prometheus:2
+    container_name: prometheus
     hostname: prometheus
     restart: always
     volumes:
@@ -48,6 +50,7 @@ services:
 
   alertmanager:
     image: docker.io/bitnami/alertmanager:0
+    container_name: alertmanager
     hostname: alertmanager
     restart: always
     #ports:
@@ -70,6 +73,7 @@ services:
 
   blackbox-exporter:
     image: docker.io/bitnami/blackbox-exporter:0
+    container_name: blackbox
     hostname: blackbox
     restart: always
     networks:
@@ -79,6 +83,7 @@ services:
 
   cadvisor:
     image: google/cadvisor
+    container_name: c_advisor
     hostname: cadvisor
     restart: always
     networks:
@@ -95,11 +100,34 @@ services:
 
   container-exporter:
     image: prom/container-exporter
+    container_name: container-exporter
     restart: always
     #ports:
     #  - "9104:9104"
     command:
       - --addr=/var/run/docker.sock:/var/run/docker.sock
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - 127.0.0.1:3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml
+      - loki:/data/loki
+    networks:
+      - graph_network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./promtail:/etc/promtail-config/
+    command: -config.file=/etc/promtail-config/promtail.yml
+    networks:
+      - graph_network
 
 volumes:
   alertmanager_config:
@@ -108,6 +136,7 @@ volumes:
   grafana_data:
   prometheus_data:
   prometheus_config:
+  loki:
 
 networks:
   traefik-network:
