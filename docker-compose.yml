@@ -3,6 +3,7 @@ version: "3.7"
 services:
   grafana:
     image: docker.io/bitnami/grafana:latest
+    container_name: grafana
     hostname: graph
     restart: always
     environment:
@@ -26,12 +27,17 @@ services:
       - "traefik.http.routers.${GRAFANA_PROJECT}.rule=Host(`${GRAFANA_FQDN}`)"
       - "traefik.http.routers.${GRAFANA_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${GRAFANA_PROJECT}.tls=true"
+<<<<<<< HEAD
       - "traefik.http.routers.${GRAFANA_PROJECT}.tls.certresolver=apiresolver"
+=======
+      - "traefik.http.routers.${GRAFANA_PROJECT}.tls.certresolver=${TLSRESOLVER}"
+>>>>>>> 3adf4020af1a09dc1d10c7448a165fb4b2620b76
       - "traefik.docker.network=traefik-external"
       - "traefik.port=3000"
 
   prometheus:
     image: docker.io/bitnami/prometheus:2
+    container_name: prometheus
     hostname: prometheus
     restart: always
     volumes:
@@ -47,13 +53,18 @@ services:
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.rule=Host(`${PROMETHEUS_FQDN}`)"
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls=true"
+<<<<<<< HEAD
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls.certresolver=apiresolver"
+=======
+      - "traefik.http.routers.${PROMETHEUS_PROJECT}.tls.certresolver=${TLSRESOLVER}"
+>>>>>>> 3adf4020af1a09dc1d10c7448a165fb4b2620b76
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9090"
       - "traefik.http.routers.prometheus.middlewares=traefik-auth"
 
   alertmanager:
     image: docker.io/bitnami/alertmanager:0
+    container_name: alertmanager
     hostname: alertmanager
     restart: always
     #ports:
@@ -66,7 +77,11 @@ services:
       - "traefik.http.routers.${ALERT_PROJECT}.rule=Host(`${ALERT_FQDN}`)"
       - "traefik.http.routers.${ALERT_PROJECT}.entrypoints=websecure"
       - "traefik.http.routers.${ALERT_PROJECT}.tls=true"
+<<<<<<< HEAD
       - "traefik.http.routers.${ALERT_PROJECT}.tls.certresolver=apiresolver"
+=======
+      - "traefik.http.routers.${ALERT_PROJECT}.tls.certresolver=${TLSRESOLVER}"
+>>>>>>> 3adf4020af1a09dc1d10c7448a165fb4b2620b76
       - "traefik.docker.network=traefik-external"
       - "traefik.port=9093"
       - "traefik.http.routers.alert.middlewares=traefik-auth"
@@ -76,6 +91,7 @@ services:
 
   blackbox-exporter:
     image: docker.io/bitnami/blackbox-exporter:0
+    container_name: blackbox
     hostname: blackbox
     restart: always
     networks:
@@ -85,6 +101,7 @@ services:
 
   cadvisor:
     image: google/cadvisor
+    container_name: c_advisor
     hostname: cadvisor
     restart: always
     networks:
@@ -101,11 +118,34 @@ services:
 
   container-exporter:
     image: prom/container-exporter
+    container_name: container-exporter
     restart: always
     #ports:
     #  - "9104:9104"
     command:
       - --addr=/var/run/docker.sock:/var/run/docker.sock
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - 127.0.0.1:3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml
+      - loki:/data/loki
+    networks:
+      - graph_network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./promtail:/etc/promtail-config/
+    command: -config.file=/etc/promtail-config/promtail.yml
+    networks:
+      - graph_network
 
   loki:
     image: grafana/loki:latest
