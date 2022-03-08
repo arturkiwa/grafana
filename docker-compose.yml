@@ -1,5 +1,14 @@
 version: "3.7"
 
+x-logging:
+  &loki-logging
+  driver: loki
+  options:
+    loki-url: http://127.0.0.1:3100/loki/api/v1/push
+    loki-external-labels: "job=grafana,owner=artur,environment=development"
+    loki-retries: "5"
+    loki-batch-size: "400"
+
 services:
   grafana:
     image: docker.io/bitnami/grafana:latest
@@ -10,15 +19,16 @@ services:
       - 'GF_INSTALL_PLUGINS=camptocamp-prometheus-alertmanager-datasource'
     #ports:
     #  - "3000:3000"
+    networks:
+      - traefik-network
+      - graph_network
     logging:
       driver: "loki"
       options:
-        loki-url: http://loki:3100/loki/api/v1/push
+        loki-url: http://127.0.0.1:3100/loki/api/v1/push
+        loki-external-labels: "job=grafana,owner=artur,environment=development"
         loki-retries: "5"
         loki-batch-size: "400"
-    networks:
-      - ${TRAEFIK_NETWORK_NAME}
-      - ${INTERNAL_NETWORK_NAME}
     volumes:
       - grafana_data:/opt/bitnami/grafana/data
     labels:
@@ -40,8 +50,9 @@ services:
     #ports:
     #  - '9091:9090'
     networks:
-      - ${TRAEFIK_NETWORK_NAME}
-      - ${INTERNAL_NETWORK_NAME}
+      - traefik-network
+      - graph_network
+    logging: *loki-logging
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${PROMETHEUS_PROJECT}.rule=Host(`${PROMETHEUS_FQDN}`)"
@@ -59,8 +70,9 @@ services:
     #ports:
     #  - '9093:9093'
     networks:
-      - ${TRAEFIK_NETWORK_NAME}
-      - ${INTERNAL_NETWORK_NAME}
+      - traefik-network
+      - graph_network
+    logging: *loki-logging
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${ALERT_PROJECT}.rule=Host(`${ALERT_FQDN}`)"
@@ -78,8 +90,9 @@ services:
     image: docker.io/bitnami/blackbox-exporter:0
     hostname: blackbox
     restart: always
+    logging: *loki-logging
     networks:
-      - ${INTERNAL_NETWORK_NAME}
+      - graph_network
     volumes:
       - blackbox_config:/opt/bitnami/blackbox-exporter
 
@@ -88,7 +101,8 @@ services:
     hostname: cadvisor
     restart: always
     networks:
-      - ${INTERNAL_NETWORK_NAME}
+      - graph_network
+    logging: *loki-logging
     #ports:
     #  - 8888:8080
     devices:
@@ -117,7 +131,10 @@ services:
       - ./loki/config.yaml:/etc/loki/config.yaml
       - loki:/data/loki
     networks:
-      - ${INTERNAL_NETWORK_NAME}
+      - graph_network
+#    networks:
+#      loki_network:
+#        ipv4_address: 10.5.0.2
 
   promtail:
     image: grafana/promtail:latest
@@ -128,7 +145,7 @@ services:
       - ./promtail:/etc/promtail-config/
     command: -config.file=/etc/promtail-config/promtail.yml
     networks:
-      - ${INTERNAL_NETWORK_NAME}
+      - graph_network
 
 
 volumes:
@@ -148,3 +165,9 @@ networks:
   graph_network:
     name: ${INTERNAL_NETWORK_NAME}
     driver: bridge
+#  loki_network:
+#    driver: bridge
+#    ipam:
+#      config:
+#        - subnet: 10.5.0.0/16
+#          gateway: 10.5.0.1
