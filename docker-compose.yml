@@ -44,6 +44,9 @@ services:
     image: docker.io/bitnami/prometheus:2
     hostname: prometheus
     restart: always
+    command:
+      - --web.enable-lifecycle
+      - --config.file=/opt/bitnami/prometheus/conf/prometheus.yml
     volumes:
       - prometheus_data:/opt/bitnami/prometheus/data
       - prometheus_config:/opt/bitnami/prometheus/conf
@@ -103,8 +106,8 @@ services:
     networks:
       - graph_network
     logging: *loki-logging
-    #ports:
-    #  - 8888:8080
+    ports:
+      - 8888:8080
     devices:
       - /dev/kmsg:/dev/kmsg
     volumes:
@@ -116,8 +119,8 @@ services:
   container-exporter:
     image: prom/container-exporter
     restart: always
-    #ports:
-    #  - "9104:9104"
+    ports:
+      - "9104:9104"
     command:
       - --addr=/var/run/docker.sock:/var/run/docker.sock
 
