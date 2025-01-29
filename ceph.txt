@@ -1,0 +1,177 @@
+1. Przygotowanie Dysków
+      export DISK=/dev/sdb
+      sgdisk --zap-all $DISK
+      dd if=/dev/zero of=$DISK bs=1M count=100 oflag=direct,dsync
+      blkdiscard $DISK
+      partprobe $DISK
+
+
+2. Dodanie module RBD do Kernel
+      modprobe rbd
+      vim /etc/modules-load.d/rook-ceph.conf > rbd
+
+3. Dodanie Helm repo
+      helm repo add rook  https://pakiety.dev.pekao.com.pl/virt-rook
+      helm repo list
+            NAME    URL
+            rook    https://pakiety.dev.pekao.com.pl/virt-rook
+
+4. Pobranie helm Charts
+      helm repo update
+      helm search repo rook
+            NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+            rook/rook-ceph          v1.15.1         v1.15.1         File, Block, and Object Storage Services for yo...
+            rook/rook-ceph-cluster  v1.15.1         v1.15.1         Manages a single Ceph cluster namespace for Rook
+      helm fetch rook/rook-ceph # rook-ceph operator
+      helm fetch rook/rook-ceph-cluster # ceph-ceph cluster
+
+5. Przygotwanie pliku values.yaml - rook-ceph-operator
+      - repository: "należy wpisać odpiwednie registry"
+
+6. Przygotwanie pliku values.yaml - rook-ceph-cluster
+      - repository: "należy wpisać odpiwednie registry"
+      - ustawienie konfiguracji dysków
+  storage: # cluster level storage configuration and selection
+    useAllNodes: false
+    useAllDevices: false
+    config:
+    nodes:
+    - name: "hostname"
+      devices:
+      - name: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_c83d8466-ef36-4c8c-aac4-4c746ca98d42" #sdb
+      - name: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_28024e81-450d-4dc2-81ab-53e0da125e9f" #sdc
+      - name: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_5b2b5cf7-6c92-4f2d-abee-40e241e72def" #sdd
+
+7. Instalacja ceph-operator
+      helm install --create-namespace --namespace rook-ceph rook-ceph . -f values.yaml
+      helm list -A
+            NAME    NAMESPACE       REVISION        UPDATED                                         STATUS          CHART                   APP 
+            rook    rook-ceph       1               2024-09-19 13:18:30.352041163 +0200 CEST        deployed        rook-ceph-v1.15.1       v1.1
+
+      Deploy:
+
+            NAME                                      READY   STATUS    RESTARTS   AGE
+            pod/rook-ceph-operator-7d7b898df4-6qmqx   1/1     Running   0          7m1s
+
+            NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+            deployment.apps/rook-ceph-operator   1/1     1            1           7m1s
+
+            NAME                                            DESIRED   CURRENT   READY   AGE
+            replicaset.apps/rook-ceph-operator-7d7b898df4   1         1         1       7m1s
+
+8. Install ceph-cluster
+      helm install --create-namespace --namespace rook-ceph rook-ceph-cluster --set operatorNamespace=rook-ceph . -f values.yaml
+      helm list -A
+      NAME                    NAMESPACE       REVISION        UPDATED                                         STATUS          CHART             
+      rook-ceph-cluster       rook-ceph       1               2024-09-20 09:54:59.016917236 +0200 CEST        deployed        rook-ceph-cluster-
+
+9. Cluster
+      NAME                                                 READY   STATUS      RESTARTS      AGE
+      csi-cephfsplugin-9bvxq                               3/3     Running     0             31m
+      csi-cephfsplugin-dz5fg                               3/3     Running     0             31m
+      csi-cephfsplugin-provisioner-7487d86f69-fwlvj        7/7     Running     1 (68s ago)   4m10s
+      csi-cephfsplugin-provisioner-7487d86f69-vxtk2        7/7     Running     1 (68s ago)   4m10s
+      csi-cephfsplugin-rxtkv                               3/3     Running     0             31m
+      csi-cephfsplugin-s4p2w                               3/3     Running     0             31m
+      csi-cephfsplugin-v6kd7                               3/3     Running     0             31m
+      csi-rbdplugin-68qxh                                  4/4     Running     1 (11s ago)   3m12s
+      csi-rbdplugin-gnr2g                                  4/4     Running     1 (11s ago)   3m12s
+      csi-rbdplugin-provisioner-65b9b96f4c-48l84           7/7     Running     1 (9s ago)    3m12s
+      csi-rbdplugin-provisioner-65b9b96f4c-q2xcn           7/7     Running     0             2m58s
+      csi-rbdplugin-w4wv2                                  4/4     Running     1 (11s ago)   3m12s
+      csi-rbdplugin-x5gks                                  4/4     Running     1 (11s ago)   3m12s
+      csi-rbdplugin-zbflq                                  4/4     Running     0             2m58s
+      rook-ceph-crashcollector-lokidw01-8c58c6c9-2xmxp     1/1     Running     0             28m
+      rook-ceph-crashcollector-lokidw02-76db8cf5fd-bc965   1/1     Running     0             30m
+      rook-ceph-crashcollector-lokidw03-6785f97449-gf76j   1/1     Running     0             29m
+      rook-ceph-crashcollector-lokidw04-5f9f697f8d-7kwrx   1/1     Running     0             30m
+      rook-ceph-crashcollector-lokidw05-5575b44779-psfl8   1/1     Running     0             29m
+      rook-ceph-exporter-lokidw01-df4464697-4tc6x          1/1     Running     0             28m
+      rook-ceph-exporter-lokidw02-9485f8f4d-rbsrd          1/1     Running     0             30m
+      rook-ceph-exporter-lokidw03-65ff5c7fdc-kk627         1/1     Running     0             29m
+      rook-ceph-exporter-lokidw04-598dc584cd-n4788         1/1     Running     0             30m
+      rook-ceph-exporter-lokidw05-6cdb776677-h6npf         1/1     Running     0             29m
+      rook-ceph-mds-ceph-filesystem-a-6b746984d9-24vgg     2/2     Running     0             29m
+      rook-ceph-mds-ceph-filesystem-b-6bd4c4fff-9lfkz      2/2     Running     0             29m
+      rook-ceph-mgr-a-5d5b5fc55b-l7gfs                     3/3     Running     0             30m
+      rook-ceph-mgr-b-59775c7d77-kmcqv                     3/3     Running     0             30m
+      rook-ceph-mon-a-598dd9f56b-4pxm5                     2/2     Running     0             31m
+      rook-ceph-mon-b-bfd4f45b8-tgndj                      2/2     Running     0             31m
+      rook-ceph-mon-c-65668cbf5f-56qm7                     2/2     Running     0             30m
+      rook-ceph-operator-7d7b898df4-slwcn                  1/1     Running     0             42m
+      rook-ceph-osd-0-74cd85f67f-ttb7b                     2/2     Running     0             29m
+      rook-ceph-osd-1-7c9dc886d-s7fc9                      2/2     Running     0             29m
+      rook-ceph-osd-10-6554755db9-x44wd                    2/2     Running     0             29m
+      rook-ceph-osd-11-8d678d94d-vbhvt                     2/2     Running     0             29m
+      rook-ceph-osd-12-57f48fd7c4-mvhxc                    2/2     Running     0             29m
+      rook-ceph-osd-13-54667b6545-mbcqw                    2/2     Running     0             29m
+      rook-ceph-osd-14-7468f4cc9d-664cq                    2/2     Running     0             29m
+      rook-ceph-osd-2-7495599df4-mslrh                     2/2     Running     0             29m
+      rook-ceph-osd-3-67dd55484f-5qdhq                     2/2     Running     0             29m
+      rook-ceph-osd-4-76b98898db-jxzl6                     2/2     Running     0             29m
+      rook-ceph-osd-5-d474f478-vkm5v                       2/2     Running     0             29m
+      rook-ceph-osd-6-84d545855c-mcmv6                     2/2     Running     0             29m
+      rook-ceph-osd-7-767bbc685b-g5dfh                     2/2     Running     0             29m
+      rook-ceph-osd-8-85c455f6b6-gsxlz                     2/2     Running     0             29m
+      rook-ceph-osd-9-d687fbb89-pzk2k                      2/2     Running     0             29m
+      rook-ceph-osd-prepare-lokidw01-z65mh                 0/1     Completed   0             30m
+      rook-ceph-osd-prepare-lokidw02-mbzvf                 0/1     Completed   0             30m
+      rook-ceph-osd-prepare-lokidw03-65pft                 0/1     Completed   0             30m
+      rook-ceph-osd-prepare-lokidw04-nmfrr                 0/1     Completed   0             30m
+      rook-ceph-osd-prepare-lokidw05-tr4nt                 0/1     Completed   0             30m
+      rook-ceph-rgw-ceph-objectstore-a-dfd75cd4-hk8h5      2/2     Running     0             28m
+      rook-ceph-tools-5c45984b76-hjqsr                     1/1     Running     0             31m
+
+10. Uruchomienie Dashboard Ceph
+      https://10.143.17.137:30443 - user and passwd - secret = rook-ceph-dashboard-password
+
+      apiVersion: v1
+      kind: Service
+      metadata:
+        labels:
+          app: rook-ceph-mgr
+          rook_cluster: rook-ceph
+        name: rook-ceph-mgr-dashboard-external
+        namespace: rook-ceph
+      spec:
+        internalTrafficPolicy: Cluster
+        ipFamilies:
+        - IPv4
+        ipFamilyPolicy: SingleStack
+        ports:
+        - name: https-dashboard
+          nodePort: 30443
+          port: 8443
+          protocol: TCP
+          targetPort: 8443
+        selector:
+          app: rook-ceph-mgr
+          mgr_role: active
+          rook_cluster: rook-ceph
+        sessionAffinity: None
+        type: NodePort
+      status:
+        loadBalancer: {}
+
+11. StorageClass
+      NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+      ceph-block (default)   rook-ceph.rbd.csi.ceph.com      Delete          Immediate              true                   39m
+      ceph-bucket            rook-ceph.ceph.rook.io/bucket   Delete          Immediate              false                  39m
+      ceph-filesystem        rook-ceph.cephfs.csi.ceph.com   Delete          Immediate              true                   39m
+
+12. Create bucket
+
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: test
+spec:
+  # To create a new bucket specify either `bucketName` or
+  # `generateBucketName` here. Both cannot be used. To access
+  # an existing bucket the bucket name needs to be defined in
+  # the StorageClass referenced here, and both `bucketName` and
+  # `generateBucketName` must be omitted in the OBC.
+  bucketName:test
+  #generateBucketName: ceph-bkt
+  storageClassName: ceph-bucket
